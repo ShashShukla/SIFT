@@ -6,12 +6,11 @@ class node:
     '''i : dimension with max range VARIANCE METHOD IS COMPUTATIONALLY EXPENSIVE
     m : median of the data ROLLED with -i "REMEMBER" 
     m_orig : the original median'''
-    def __init__(self,ltree,rtree,dimension,mediod,med_rolled,feature = []):
+    def __init__(self,ltree,rtree,dimension,med_rolled,feature = []):
         self.L = ltree
         self.R = rtree
         self.i = dimension
         self.m = med_rolled
-        self.m_orig = mediod
         if (self.L == False) and (self.R == False):
             self.data = feature
         
@@ -24,7 +23,7 @@ class node:
     
     def dist(self,q):
         '''Used only after confirming that it is a leaf'''
-        t = self.data - q
+        t = self.data[1] - q
         return np.dot(t,t)
     
 
@@ -49,7 +48,7 @@ class tree:
 
     def __make_node(self,lookup):
         if(lookup.shape[1] == 1):
-            return node(False,False,False,False,False, (self.kp[lookup[0,0]],self.feat_vec[lookup[0,0]]))
+            return node(False,False,False,False, (self.kp[lookup[0,0]],self.feat_vec[lookup[0,0]]))
         if(lookup.shape[1] == 0): 
             return False
         max_dim = np.argmax(self.feat_vec[lookup[:,lookup.shape[1]-1],self.ind]- self.feat_vec[lookup[:,0],self.ind])
@@ -66,8 +65,8 @@ class tree:
         del maskL
         del maskR
         
-        #med = self.feat_vec[med] if lookup.shape[1] % 2 == 1 else (self.feat_vec[med] + self.feat_vec[med - 1]) /2.0
-        return node(self.__make_node(lookL),self.__make_node(lookR),max_dim,med,np.roll(med, - max_dim, axis = 0).tolist())
+        med = self.feat_vec[lookup[max_dim,med]] if lookup.shape[1] % 2 == 1 else (self.feat_vec[lookup[max_dim,med]] + self.feat_vec[lookup[max_dim,med - 1]]) /2.0
+        return node(self.__make_node(lookL),self.__make_node(lookR),max_dim,np.roll(med, - max_dim, axis = 0).tolist())
         
     def drop_down(self, node, q, queue):
         # make this iterative, maybe
