@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 import numpy as np
+import Queue as Q
 
 class node:
     '''i : dimension with max range VARIANCE METHOD IS COMPUTATIONALLY EXPENSIVE
@@ -16,12 +17,12 @@ class node:
         
     def is_leaf(self):
         return (self.L == False) and (self.R == False)
-    
-    def dist_from_edge(self,q):
+################## hmm, what should we do about them ##########################    
+    def distance_to_bounds(self,q):
         '''used only when it is a node'''
         return np.abs(self.m[0] - q[self.i])
     
-    def dist(self,q):
+    def dist(self,q):          
         '''Used only after confirming that it is a leaf'''
         t = self.data[1] - q
         return np.dot(t,t)
@@ -36,10 +37,10 @@ class tree:
         # stored values to avoid unnecessary recalculation
         self.ind = np.arange(self.feat_vec.shape[1])
         # properties explicit to the tree
-        self.root = self.__make_node(self.init_lookup())
+        self.root = self.__make_node(self.__init_lookup())
         self.bt = bt_nodes
         
-    def init_lookup(self):
+    def __init_lookup(self):
         # vectorized alternatives provide barely any speedup (will try memoisation)
         # AT : Half expecting it to slow down the program :P
         temp = np.flipud(np.transpose(self.feat_vec))
@@ -67,18 +68,21 @@ class tree:
         
         med = self.feat_vec[lookup[max_dim,med]] if lookup.shape[1] % 2 == 1 else (self.feat_vec[lookup[max_dim,med]] + self.feat_vec[lookup[max_dim,med - 1]]) /2.0
         return node(self.__make_node(lookL),self.__make_node(lookR),max_dim,np.roll(med, - max_dim, axis = 0).tolist())
-        
-    def drop_down(self, node, q, queue):
+############################# Man at work #########################################   
+    def knn_search(self, q, k = 2):
+        pri = Q.PriorityQueue()
+        #points = Q.PriorityQueue()
+        temp = self.__drop_down(self.root,q,pri)[0]
+        return temp
+    
+    def __drop_down(self, node, q, queue):
         # make this iterative, maybe
         if node.is_leaf():
-            return (node.data[1],queue,q)
-        u = np.roll(q,self.feat_vec.shape[1]-node.i).tolist()
-        print u
-        print node.m
-        print node.i
-        p =  u < node.m
-        print p
-        if  p :
-            return self.drop_down(node.L,q,queue)
+            return (node.data,q,queue)
+        
+        if  np.roll(q,self.feat_vec.shape[1]-node.i).tolist() < node.m :
+            queue.put((node.R.distance_to_bounds(q),node.R))
+            return self.__drop_down(node.L,q,queue)
         else:
-            return self.drop_down(node.R,q,queue)
+            queue.put((node.L.distance_to_bounds(q),node.L))
+            return self.__drop_down(node.R,q,queue)
