@@ -72,8 +72,13 @@ class tree:
         # make this iterative, maybe
         if node.is_leaf():
             return (node.data[1],queue,q)
-         
-        if  np.roll(q, -node.i).tolist() < node.m :
-            return self.drop_down(node.L,queue,q)
+        u = np.roll(q,self.feat_vec.shape[1]-node.i).tolist()
+        print u
+        print node.m
+        print node.i
+        p =  u < node.m
+        print p
+        if  p :
+            return self.drop_down(node.L,q,queue)
         else:
-            return self.drop_down(node.R,queue,q)
+            return self.drop_down(node.R,q,queue)
