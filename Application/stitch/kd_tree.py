@@ -83,7 +83,7 @@ class tree:
         points = points[0:ctr]
         dists = dists[0:ctr]
         nk = np.argpartition(dists,np.arange(k))[:k]
-        return [ points[nk], dists[nk] ]  
+        return (points[nk], dists[nk])  
     
     def __drop_down(self, node, q, queue):
         # make this iterative, maybe
