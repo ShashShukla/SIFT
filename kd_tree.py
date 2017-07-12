@@ -5,8 +5,7 @@ import Queue as Q
 
 class node:
     '''i : dimension with max range VARIANCE METHOD IS COMPUTATIONALLY EXPENSIVE
-    m : median of the data ROLLED with -i "REMEMBER" 
-    m_orig : the original median'''
+    m : median of the data ROLLED with -i "REMEMBER" '''
     def __init__(self,ltree,rtree,dimension,med_rolled,feature = []):
         self.L = ltree
         self.R = rtree
@@ -17,7 +16,7 @@ class node:
         
     def is_leaf(self):
         return (self.L == False) and (self.R == False)
-################## hmm, what should we do about them ##########################    
+
     def distance_to_bounds(self,q):
         '''used only when it is a node'''
         return np.abs(self.m[0] - q[self.i])
@@ -30,7 +29,7 @@ class node:
 
 class tree:
     '''ind = range(128) (np.arrange(number of dimensions ))
-    bt = number of (leaves ? / nodes ?) to check during backtracking'''
+    bt = number of leaves to check during backtracking'''
     def __init__(self,keypoints,features,bt_nodes = 2):
         self.feat_vec = features
         self.kp = keypoints
@@ -49,7 +48,7 @@ class tree:
 
     def __make_node(self,lookup):
         if(lookup.shape[1] == 1):
-            return node(False,False,False,False, (self.kp[lookup[0,0]],self.feat_vec[lookup[0,0]]))
+            return node(False,False,False,False, (self.kp[lookup[0,0]],self.feat_vec[lookup[0,0]],lookup[0,0]))
         if(lookup.shape[1] == 0): 
             return False
         max_dim = np.argmax(self.feat_vec[lookup[:,lookup.shape[1]-1],self.ind]- self.feat_vec[lookup[:,0],self.ind])
@@ -68,21 +67,32 @@ class tree:
         
         med = self.feat_vec[lookup[max_dim,med]] if lookup.shape[1] % 2 == 1 else (self.feat_vec[lookup[max_dim,med]] + self.feat_vec[lookup[max_dim,med - 1]]) /2.0
         return node(self.__make_node(lookL),self.__make_node(lookR),max_dim,np.roll(med, - max_dim, axis = 0).tolist())
-############################# Man at work #########################################   
-    def knn_search(self, q, k = 2):
+   
+    def knn_search(self, q, k = 2, EXAMINE_POINTS = 10):
+        ''' Few checks like EXAMINE_POINTS > k are not implemented here, User is expected to take care of these checks'''
         pri = Q.PriorityQueue()
-        #points = Q.PriorityQueue()
-        temp = self.__drop_down(self.root,q,pri)[0]
-        return temp
+        points = np.zeros(EXAMINE_POINTS,dtype = object)
+        dists = np.zeros(EXAMINE_POINTS,dtype = np.float64)
+        points[0] = self.__drop_down(self.root, q, pri)
+        dists[0] = points[0].dist(q)
+        ctr = 1
+        while (ctr < EXAMINE_POINTS) and ( not pri.empty() ) :
+            points[ctr] = self.__drop_down(pri.get()[1], q, pri)
+            dists[ctr] = points[ctr].dist(q)
+            ctr += 1
+        points = points[0:ctr]
+        dists = dists[0:ctr]
+        nk = np.argpartition(dists,np.arange(k))[:k]
+        return [ points[nk], dists[nk] ]  
     
     def __drop_down(self, node, q, queue):
         # make this iterative, maybe
         if node.is_leaf():
-            return (node.data,q,queue)
+            return node
         
         if  np.roll(q,self.feat_vec.shape[1]-node.i).tolist() < node.m :
-            queue.put((node.R.distance_to_bounds(q),node.R))
+            queue.put((node.distance_to_bounds(q),node.R))
             return self.__drop_down(node.L,q,queue)
         else:
-            queue.put((node.L.distance_to_bounds(q),node.L))
+            queue.put((node.distance_to_bounds(q),node.L))
             return self.__drop_down(node.R,q,queue)
