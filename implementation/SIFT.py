@@ -43,7 +43,6 @@ def check_extrema(i,j):
     threshold = 0.5 * 0.04 * 255 / nScales
     
     global dog_pyramid
-    #here i was @chinmay
     maxmask = np.greater(dog_pyramid[ i][ j][ 1 : (dog_pyramid[i][j].shape[0] - 1), 1 : (dog_pyramid[i][j].shape[1] - 1)],threshold) 
     minmask = np.copy(maxmask)
     
